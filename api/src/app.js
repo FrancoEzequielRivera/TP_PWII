@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 const PORT = 7050;
-const db = require('./database');
+const db = require('./database'); // Asegúrate de que esta ruta a database.js es correcta
 
 // Importar rutas de la API
 const celularesRoutes = require('./routes/celulares');
@@ -10,11 +10,10 @@ const ventasRoutes = require('./routes/ventas');
 
 // --- NUEVAS LÍNEAS PARA SERVIR EL FRONTEND ---
 const path = require('path');
+// Asegúrate de que esta ruta apunte a la carpeta 'frontend' que está un nivel por encima de 'api'
 app.use(express.static(path.join(__dirname, '../../frontend'))); // Sirve los archivos de la carpeta 'frontend'
 
 // Manejar todas las demás rutas para el frontend (útil para SPAs, o para redirigir a index.html)
-// Esto asegura que si el usuario navega a /gestion, se le devuelva index.html o gestion.html
-// y luego el JS del frontend maneje el routing.
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../../frontend/index.html'));
 });

@@ -12,13 +12,14 @@ router.get('/', (req, res) => {
             Cliente.apellido AS cliente_apellido,
             Celulares.marca AS producto_marca,
             Celulares.modelo AS producto_modelo,
-            Celulares.precio AS producto_precio
+            Celulares.precio AS producto_precio -- Asegúrate de que este nombre coincide con la columna en Celulares
         FROM Ventas
         JOIN Cliente ON Ventas.cliente = Cliente.id
         JOIN Celulares ON Ventas.producto = Celulares.id
     `;
     db.all(sql, [], (err, rows) => {
         if (err) {
+            console.error('Error al obtener todas las ventas:', err.message); // Añadido log
             res.status(500).json({ error: err.message });
             return;
         }
@@ -46,6 +47,7 @@ router.post('/', (req, res) => {
             const sql = `INSERT INTO Ventas (cliente, producto, fecha) VALUES (?, ?, ?)`;
             db.run(sql, [cliente_id, producto_id, fecha], function(err) {
                 if (err) {
+                    console.error('Error al insertar venta:', err.message); // Añadido log
                     res.status(500).json({ error: err.message });
                     return;
                 }

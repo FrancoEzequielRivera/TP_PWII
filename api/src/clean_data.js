@@ -3,17 +3,14 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-// Ajusta la ruta a tu archivo de base de datos
-const DB_PATH = path.resolve(__dirname, '../../celulares.db'); // Asume que celulares.db está en la raíz de tu proyecto
-// Si tu celulares.db está en api/src/, entonces sería:
-// const DB_PATH = path.resolve(__dirname, './celulares.db');
-
+// Asegúrate de que esta ruta apunte a la base de datos en la raíz del proyecto
+const DB_PATH = path.resolve(__dirname, '../../celulares.db');
 
 const db = new sqlite3.Database(DB_PATH, (err) => {
     if (err) {
-        console.error('Error al conectar a la base de datos:', err.message);
+        console.error('Error al conectar a la base de datos para limpieza:', err.message);
     } else {
-        console.log('Conectado a la base de datos SQLite para limpieza.');
+        console.log(`Conectado a la base de datos SQLite para limpieza en: ${DB_PATH}`); // Log para verificar la ruta
     }
 });
 
@@ -23,7 +20,6 @@ async function cleanCelularesData() {
     let updatedCount = 0;
 
     try {
-        // 1. Obtener todos los celulares
         const allCelulares = await new Promise((resolve, reject) => {
             db.all('SELECT * FROM Celulares', [], (err, rows) => {
                 if (err) {
@@ -36,63 +32,112 @@ async function cleanCelularesData() {
 
         console.log(`Se encontraron ${allCelulares.length} celulares.`);
 
-        // 2. Procesar cada celular para limpiar los datos
         for (const celular of allCelulares) {
             let needsUpdate = false;
-            const updatedCelular = { ...celular }; // Crea una copia para modificar
+            const updatedCelular = { ...celular };
 
-            // Limpiar 'precio'
-            let parsedPrecio = parseFloat(celular.precio);
-            if (isNaN(parsedPrecio) || parsedPrecio <= 0) { // Si no es un número o es <= 0
-                parsedPrecio = 0.00; // Valor por defecto
-                needsUpdate = true;
-                console.log(`Celular ID <span class="math-inline">\{celular\.id\}\: Precio '</span>{celular.precio}' limpiado a ${parsedPrecio}`);
+            // --- Lógica de limpieza mejorada para 'precio' ---
+            let originalPriceString = String(celular.precio || '').trim(); // Convertir a string y limpiar espacios
+            let extractedPrice = 0.00; // Valor por defecto si no se encuentra un número
+
+            // *** NUEVO CAMBIO: Eliminar comas antes de extraer el número ***
+            const cleanedPriceString = originalPriceString.replace(/,/g, ''); // Elimina todas las comas
+
+            // Expresión regular para encontrar uno o más dígitos, opcionalmente con un punto decimal
+            // y más dígitos después. Busca el primer patrón numérico.
+            const priceRegex = /(\d+(\.\d+)?)/;
+            const match = cleanedPriceString.match(priceRegex); // Usa la cadena sin comas para la regex
+
+            if (match && match[1]) {
+                // Si se encontró un patrón numérico, intenta parsearlo
+                let tempParsedPrice = parseFloat(match[1]);
+                if (!isNaN(tempParsedPrice) && tempParsedPrice > 0) {
+                    extractedPrice = tempParsedPrice;
+                }
             }
-            updatedCelular.precio = parsedPrecio;
 
-            // Limpiar campos TEXT que estén vacíos o null
-            const textFields = ['ram', 'camara_frontal', 'camara_trasera', 'procesador', 'capacidad_bateria', 'tamanio_pantalla'];
-            textFields.forEach(field => {
-                // Si el valor es null, undefined, o una cadena vacía o solo espacios
-                if (!celular[field] || String(celular[field]).trim() === '') {
-                    updatedCelular[field] = 'N/A'; // O cualquier valor por defecto que desees
+            // Compara el precio extraído con el valor original (después de limpiarlo y formatearlo)
+            // Esto asegura que solo se actualice si hay un cambio real o si el original era NaN
+            const currentFormattedPrice = parseFloat(originalPriceString.replace(/,/g, '')).toFixed(2); // Formatea el original sin comas
+            if (extractedPrice.toFixed(2) !== currentFormattedPrice || isNaN(parseFloat(originalPriceString.replace(/,/g, '')))) {
+                updatedCelular.precio = extractedPrice.toFixed(2);
+                if (originalPriceString !== updatedCelular.precio) { // Solo loguear si hubo un cambio real
                     needsUpdate = true;
-                    // console.log(`Celular ID <span class="math-inline">\{celular\.id\}\: Campo '</span>{field}' limpiado a 'N/A'`); // Descomenta para ver detalles
+                    console.log(`Celular ID ${celular.id}: Precio original '${originalPriceString}' limpiado a ${updatedCelular.precio}`);
+                }
+            } else {
+                updatedCelular.precio = extractedPrice.toFixed(2); // Asegura el formato incluso si no cambió
+            }
+
+
+            // Limpiar campos TEXT que estén vacíos o null (¡Nombres de columna corregidos!)
+            const textFields = ['peso', 'RAM', 'cámara frontal', 'cámara trasera', 'procesador', 'capacidad de la batería', 'tamanio de la pantalla'];
+            textFields.forEach(field => {
+                if (!celular[field] || String(celular[field]).trim() === '') {
+                    updatedCelular[field] = 'N/A';
+                    if (celular[field] !== 'N/A') needsUpdate = true; // Solo marca para actualización si no era ya N/A
                 } else {
-                    // Asegura que no haya espacios extra y estandariza mayúsculas/minúsculas si quieres
-                    updatedCelular[field] = String(celular[field]).trim();
+                    const cleanedValue = String(celular[field]).trim();
+                    if (cleanedValue !== celular[field]) needsUpdate = true;
+                    updatedCelular[field] = cleanedValue;
                 }
             });
 
-            // Limpiar 'lanzamiento' (ya debería estar arreglado, pero por si acaso)
+            // Limpiar 'lanzamiento'
             if (!celular.lanzamiento || String(celular.lanzamiento).trim() === '' || isNaN(new Date(celular.lanzamiento))) {
-                updatedCelular.lanzamiento = '2000-01-01'; // O una fecha por defecto más genérica si no hay una real
-                needsUpdate = true;
-                // console.log(`Celular ID <span class="math-inline">\{celular\.id\}\: Lanzamiento '</span>{celular.lanzamiento}' limpiado a ${updatedCelular.lanzamiento}`);
+                updatedCelular.lanzamiento = '2000-01-01'; // O una fecha por defecto más genérica
+                if (celular.lanzamiento !== '2000-01-01') needsUpdate = true;
             } else {
-                 // Asegurarse de que el formato sea YYYY-MM-DD
                  const dateObj = new Date(celular.lanzamiento);
                  const year = dateObj.getFullYear();
                  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
                  const day = String(dateObj.getDate()).padStart(2, '0');
-                 updatedCelular.lanzamiento = `<span class="math-inline">\{year\}\-</span>{month}-${day}`;
+                 const formattedDate = `${year}-${month}-${day}`;
+                 if (formattedDate !== celular.lanzamiento) needsUpdate = true;
+                 updatedCelular.lanzamiento = formattedDate;
             }
 
 
             // 3. Actualizar el celular si se detectó algún cambio
             if (needsUpdate) {
                 await new Promise((resolve, reject) => {
-                    const { id, marca, modelo, precio, peso, ram, camara_frontal, camara_trasera, procesador, capacidad_bateria, tamanio_pantalla, lanzamiento } = updatedCelular;
+                    const {
+                        id, marca, modelo, precio, peso,
+                        'RAM': RAM,
+                        'cámara frontal': camara_frontal,
+                        'cámara trasera': camara_trasera,
+                        procesador,
+                        'capacidad de la batería': capacidad_bateria,
+                        'tamanio de la pantalla': tamanio_pantalla,
+                        lanzamiento
+                    } = updatedCelular;
+
                     const sql = `UPDATE Celulares SET
-                                marca = ?, modelo = ?, precio = ?, peso = ?, ram = ?,
-                                camara_frontal = ?, camara_trasera = ?, procesador = ?,
-                                capacidad_bateria = ?, tamanio_pantalla = ?, lanzamiento = ?
+                                marca = ?,
+                                modelo = ?,
+                                peso = ?,
+                                "RAM" = ?,
+                                "cámara frontal" = ?,
+                                "cámara trasera" = ?,
+                                procesador = ?,
+                                "capacidad de la batería" = ?,
+                                "tamanio de la pantalla" = ?,
+                                precio = ?,
+                                lanzamiento = ?
                                 WHERE id = ?`;
                     const params = [
-                        marca, modelo, precio,
-                        peso, ram, camara_frontal, camara_trasera,
-                        procesador, capacidad_bateria, tamanio_pantalla,
-                        lanzamiento, id
+                        marca,
+                        modelo,
+                        peso,
+                        RAM,
+                        camara_frontal,
+                        camara_trasera,
+                        procesador,
+                        capacidad_bateria,
+                        tamanio_pantalla,
+                        precio, // Precio ya formateado como string
+                        lanzamiento,
+                        id
                     ];
                     db.run(sql, params, function(err) {
                         if (err) {
@@ -114,9 +159,9 @@ async function cleanCelularesData() {
     } finally {
         db.close((err) => {
             if (err) {
-                console.error('Error al cerrar la base de datos:', err.message);
+                console.error('Error al cerrar la base de datos para limpieza:', err.message);
             } else {
-                console.log('Conexión a la base de datos cerrada.');
+                console.log('Conexión a la base de datos de limpieza cerrada.');
             }
         });
     }

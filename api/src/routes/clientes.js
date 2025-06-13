@@ -6,6 +6,7 @@ const db = require('../database');
 router.get('/', (req, res) => {
     db.all('SELECT * FROM Cliente', [], (err, rows) => {
         if (err) {
+            console.error('Error al obtener todos los clientes:', err.message); // Añadido log
             res.status(500).json({ error: err.message });
             return;
         }
@@ -22,6 +23,7 @@ router.post('/', (req, res) => {
     const sql = `INSERT INTO Cliente (nombre, apellido, dni) VALUES (?, ?, ?)`;
     db.run(sql, [nombre, apellido, dni], function(err) {
         if (err) {
+            console.error('Error al insertar cliente:', err.message); // Añadido log
             res.status(500).json({ error: err.message });
             return;
         }
