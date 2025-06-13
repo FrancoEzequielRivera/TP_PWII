@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "cypress": "^14.4.1",
+    "tests": "^0.4.2"
+  },
+  "name": "tests",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {
+    "mocha": "^1.0.3"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

@@ -8,6 +8,7 @@ const DB_PATH = path.resolve(__dirname, '../../celulares.db'); // Asume que celu
 // Si tu celulares.db está en api/src/, entonces sería:
 // const DB_PATH = path.resolve(__dirname, './celulares.db');
 
+
 const db = new sqlite3.Database(DB_PATH, (err) => {
     if (err) {
         console.error('Error al conectar a la base de datos:', err.message);
