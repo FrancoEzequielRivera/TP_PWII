@@ -47,8 +47,6 @@ describe("Agregar venta", () => {
 });
 
 
-
-/*
 describe("Agregar celular", () => {
     it("Gets, types e asserts", () => {
         cy.visit("http://localhost:7050/gestion")
@@ -58,7 +56,7 @@ describe("Agregar celular", () => {
         cy.get('#add-precio').type('300')
         cy.get('#add-peso').type('200g')
         cy.get('#add-ram').type('12GB')
-        //cy.get('#add-camara_frontal').type('12MP')
+        cy.get('#add-camara_frontal').type('12MP')
         cy.get('#add-camara_trasera').type('48MP')
         cy.get('#add-procesador').type('MediaTek Dimensity 9000')
         cy.get('#add-capacidad_bateria').type('5000mAh')
@@ -68,6 +66,3 @@ describe("Agregar celular", () => {
         ;}
     );
 });
-*/
-
-
