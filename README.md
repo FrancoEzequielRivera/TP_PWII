@@ -60,15 +60,11 @@ Las pruebas se implementaron con Cypress y cubren:
 
 ### Endpoints Avanzados
 
-1. **Filtrar por empresa**
+**Filtrar por empresa**
    - `GET /celulares/empresa/:empresa`
    - Filtra celulares por nombre de empresa (búsqueda parcial case-insensitive)
    - Ejemplo: `/celulares/empresa/samsung`
 
-2. **Filtrar por rango de precio**
-   - `GET /celulares/precio?min=VALOR&max=VALOR`
-   - Devuelve celulares dentro de un rango de precios, ordenados de menor a mayor
-   - Ejemplo: `/celulares/precio?min=300&max=600`
 
 ## Códigos de Respuesta
 La API utiliza los siguientes códigos HTTP:
